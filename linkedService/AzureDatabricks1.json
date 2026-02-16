@@ -1,0 +1,14 @@
+{
+	"name": "AzureDatabricks1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405604921755120.0.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/058477cd-b04e-4fe0-afc1-05f6f4b0ef2c/resourceGroups/rg-data-engineering-projects/providers/Microsoft.Databricks/workspaces/gijo-databricks-project-01",
+			"existingClusterId": "0102-122051-wjrr7bfy"
+		}
+	}
+}

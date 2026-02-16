@@ -1,0 +1,17 @@
+{
+	"name": "ds_sql_metadata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_onprem_sqlserver",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "SalesLT",
+			"table": "Address"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

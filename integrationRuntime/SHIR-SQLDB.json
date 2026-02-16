@@ -1,0 +1,7 @@
+{
+	"name": "SHIR-SQLDB",
+	"properties": {
+		"type": "SelfHosted",
+		"description": "Self hosted integration service from SQL DB"
+	}
+}

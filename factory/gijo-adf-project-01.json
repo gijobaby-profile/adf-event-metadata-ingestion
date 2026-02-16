@@ -1,0 +1,15 @@
+{
+	"name": "gijo-adf-project-01",
+	"location": "uksouth",
+	"identity": {
+		"type": "SystemAssigned,UserAssigned",
+		"principalId": "aaceaec3-8461-4300-9672-9cf13630f7ec",
+		"tenantId": "0ed0beff-69ba-4422-a7d7-072d950819ac",
+		"userAssignedIdentities": {
+			"/subscriptions/058477cd-b04e-4fe0-afc1-05f6f4b0ef2c/resourcegroups/rg-data-engineering-projects/providers/Microsoft.ManagedIdentity/userAssignedIdentities/gijo-adf-identity": {
+				"clientId": "7dea9d0b-0557-4a53-ab9d-9b39a84dc553",
+				"principalId": "f7738d04-d804-4dd5-ba63-e4b72782f23c"
+			}
+		}
+	}
+}

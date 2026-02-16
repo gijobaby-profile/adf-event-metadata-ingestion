@@ -1,0 +1,138 @@
+{
+	"name": "pl_ingest_event_parent",
+	"properties": {
+		"activities": [
+			{
+				"name": "ParsePath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_source",
+					"value": {
+						"value": "@split(pipeline().parameters.p_file_path, '/')[1]",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "LookupMetadata",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT TOP 1 * FROM ingestion_metadata WHERE source_name = ''', pipeline().parameters.p_source, ''' AND entity_name = ''', pipeline().parameters.p_entity, ''' AND active_flag = 1')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_metadata",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "CallChildPipeline",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "LookupMetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_ingest_child",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"p_source": {
+							"value": "@pipeline().parameters.p_source",
+							"type": "Expression"
+						},
+						"p_entity": {
+							"value": "@pipeline().parameters.p_entity",
+							"type": "Expression"
+						},
+						"p_business_date": {
+							"value": "@pipeline().parameters.p_business_date",
+							"type": "Expression"
+						},
+						"p_file_name": {
+							"value": "@pipeline().parameters.p_file_name",
+							"type": "Expression"
+						},
+						"p_file_path": {
+							"value": "@pipeline().parameters.p_file_path",
+							"type": "Expression"
+						},
+						"p_delimiter": {
+							"value": "@activity('LookupMetadata').output.firstRow.delimiter",
+							"type": "Expression"
+						},
+						"p_target_table": {
+							"value": "@activity('LookupMetadata').output.firstRow.target_table",
+							"type": "Expression"
+						},
+						"p_notebook_path": {
+							"value": "@activity('LookupMetadata').output.firstRow.notebook_path",
+							"type": "Expression"
+						},
+						"p_schema_json": {
+							"value": "@activity('LookupMetadata').output.firstRow.schema_json",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"p_source": {
+				"type": "String"
+			},
+			"p_entity": {
+				"type": "String"
+			},
+			"p_business_date": {
+				"type": "String"
+			},
+			"p_file_name": {
+				"type": "String"
+			},
+			"p_file_path": {
+				"type": "String"
+			}
+		},
+		"variables": {
+			"v_source": {
+				"type": "String"
+			},
+			"v_entity": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-13T20:24:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

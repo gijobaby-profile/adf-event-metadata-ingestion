@@ -1,0 +1,187 @@
+{
+	"name": "PIPE_BRONZE_INGEST",
+	"properties": {
+		"activities": [
+			{
+				"name": "NB_GET_METADATA",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/NB_GET_METADATA",
+					"baseParameters": {
+						"file_url": {
+							"value": "@pipeline().parameters.file_url",
+							"type": "Expression"
+						},
+						"batch_dt": {
+							"value": "@pipeline().parameters.batch_dt",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "NB_AUDIT_INIT",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "NB_GET_METADATA",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/NB_AUDIT_INIT",
+					"baseParameters": {
+						"invo_id": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.invo_id",
+							"type": "Expression"
+						},
+						"source_system": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.source_system",
+							"type": "Expression"
+						},
+						"entity": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.entity",
+							"type": "Expression"
+						},
+						"business_dt": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.business_dt",
+							"type": "Expression"
+						},
+						"source_file_name": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.expected_file",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "NB_BRONZE_INGEST",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "NB_AUDIT_INIT",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/NB_BRONZE_INGEST",
+					"baseParameters": {
+						"invo_id": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.invo_id",
+							"type": "Expression"
+						},
+						"source_system": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.source_system",
+							"type": "Expression"
+						},
+						"entity": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.entity",
+							"type": "Expression"
+						},
+						"business_dt": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.business_dt",
+							"type": "Expression"
+						},
+						"source_file_name": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.expected_file",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "NB_AUDIT_UPDATE_BRONZE",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "NB_BRONZE_INGEST",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/NB_AUDIT_UPDATE_BRONZE",
+					"baseParameters": {
+						"invo_id": {
+							"value": "@activity('NB_GET_METADATA').output.runOutput.invo_id",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('NB_BRONZE_INGEST').output.runOutput.status",
+							"type": "Expression"
+						},
+						"processing_time": {
+							"value": "@activity('NB_BRONZE_INGEST').output.runOutput.processing_time",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"file_url": {
+				"type": "String"
+			},
+			"batch_dt": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "P2_MetadataDriven_EventTrigger_Ingestion"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-16T15:15:54Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,134 @@
+{
+	"name": "pl_on_file_arrival",
+	"properties": {
+		"activities": [
+			{
+				"name": "ParsePath",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/ingestion/parse_path",
+					"baseParameters": {
+						"file_path": {
+							"value": "@pipeline().parameters.p_file_path",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "LookupMetadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ParsePath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM raw.config.ingestion_metadata WHERE source_name = '@{activity('ParsePath').output.firstRow.source}' AND entity_name = '@{activity('ParsePath').output.firstRow.entity}' AND is_active = 1",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_metadata",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "CallChildIngest",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "LookupMetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_ingest_child",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"p_source": {
+							"value": "@{activity('ParsePath').output.firstRow.source}",
+							"type": "Expression"
+						},
+						"p_entity": {
+							"value": "@{activity('ParsePath').output.firstRow.entity}",
+							"type": "Expression"
+						},
+						"p_business_date": {
+							"value": "@{activity('ParsePath').output.firstRow.business_date}",
+							"type": "Expression"
+						},
+						"p_file_name": {
+							"value": "@{activity('ParsePath').output.firstRow.file_name}",
+							"type": "Expression"
+						},
+						"p_file_path": {
+							"value": "@pipeline().parameters.p_file_path",
+							"type": "Expression"
+						},
+						"p_delimiter": {
+							"value": "@{activity('LookupMetadata').output.firstRow.delimiter}",
+							"type": "Expression"
+						},
+						"p_target_table": {
+							"value": "@{activity('LookupMetadata').output.firstRow.target_table}",
+							"type": "Expression"
+						},
+						"p_notebook_path": "/Shared/ingestion/generic_ingest_external_volume",
+						"p_schema_json": {
+							"value": "@{activity('LookupMetadata').output.firstRow.schema_json}",
+							"type": "Expression"
+						},
+						"p_invocation_id": {
+							"value": "@{concat(activity('ParsePath').output.firstRow.source, '_', activity('ParsePath').output.firstRow.business_date, '_', pipeline().RunId)}",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"p_file_path": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-14T00:43:07Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

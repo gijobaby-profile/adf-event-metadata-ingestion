@@ -1,0 +1,194 @@
+{
+	"name": "MASTER_PIPELINE",
+	"properties": {
+		"activities": [
+			{
+				"name": "SET_BATCH_DT",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "batch_dt",
+					"value": {
+						"value": "@formatDateTime(addDays(utcNow(), -1), 'yyyyMMdd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "NB_RECREATE_BRONZE_AUDIT_TABLE",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "SET_BATCH_DT",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/NB_RECREATE_BRONZE_AUDIT_TABLE",
+					"baseParameters": {
+						"batch_dt": {
+							"value": "@variables('batch_dt')",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "CALL_PIPE_BRONZE_INGEST",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "NB_RECREATE_BRONZE_AUDIT_TABLE",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PIPE_BRONZE_INGEST",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"batch_dt": {
+							"value": "@variables('batch_dt')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "CALL_PIPE_CHECK_BATCH_COMPLETION",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "CALL_PIPE_BRONZE_INGEST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PIPE_CHECK_BATCH_COMPLETION",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"batch_dt": {
+							"value": "@variables('batch_dt')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "IF_BATCH_READY",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CALL_PIPE_CHECK_BATCH_COMPLETION",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('CALL_PIPE_CHECK_BATCH_COMPLETION').output.runOutput.batch_ready",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "CALL_PIPE_SILVER_PROCESS",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIPE_SILVER_PROCESS",
+									"type": "PipelineReference"
+								},
+								"parameters": {
+									"batch_dt": {
+										"value": "@variables('batch_dt')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "CALL_PIPE_SILVER_AUDIT_UPDATE",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "CALL_PIPE_SILVER_PROCESS",
+									"dependencyConditions": [
+										"Succeeded",
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIPE_SILVER_AUDIT_UPDATE",
+									"type": "PipelineReference"
+								},
+								"parameters": {
+									"batch_dt": {
+										"value": "@variables('batch_dt')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"batch_dt": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "P2_MetadataDriven_EventTrigger_Ingestion"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-02-16T16:33:42Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
